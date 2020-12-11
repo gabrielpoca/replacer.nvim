@@ -5,6 +5,8 @@ can also rename files. With this, you can easily perform a find/replace
 across your files, changing not just each file's contents but the file
 names as well.
 
+![Demo](./demo.gif)
+
 ## Using the plugin
 
 Populate a quickfix list and execute `:lua require("replacer").run()<cr>`.
