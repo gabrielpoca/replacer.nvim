@@ -87,12 +87,10 @@ function replacer.save(bufnr)
 
     local file = vim.fn.bufname(item.bufnr)
 
-    if file ~= new_file and vim.fn.filereadable(file) and vim.fn.filereadable(new_file) == 0 then
+    if file ~= "" and file ~= new_file and vim.fn.filereadable(file) and vim.fn.filereadable(new_file) == 0 then
       vim.fn.mkdir(basename(new_file), "p")
       vim.api.nvim_buf_delete(item.bufnr, {})
       vim.fn.rename(file, new_file)
-    else
-      print("Could not rename " .. unpack(file) .. " to " .. unpack(new_file))
     end
   end
 end
