@@ -1,4 +1,4 @@
-# replacer.vim
+# replacer.nvim
 
 It makes a quickfix list editable. Unlike most other similar plugins, you
 can also rename files. With this, you can easily perform a find/replace
@@ -29,7 +29,7 @@ When you're done editing the buffer save it and it's done.
 add this line to `.vimrc`
 
 ```
-Plug 'gabrielpoca/replacer.vim'
+Plug 'gabrielpoca/replacer.nvim'
 ```
 
 ```lua
