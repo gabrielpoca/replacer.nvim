@@ -1,16 +1,17 @@
 # replacer.nvim
 
-It makes a quickfix list editable. Unlike most other similar plugins, you
-can also rename files. With this, you can easily perform a find/replace
-across your files, changing not just each file's contents but the file
-names as well.
+This plugin allows you to edit multiple lines and their corresponding
+files and folders at the same time. See the example below.
 
 ![Demo](./demo.gif)
 
 ## Using the plugin
 
-Populate a quickfix list and execute `:lua require("replacer").run()<cr>`.
-You can map it to a shortcut, for instance in lua:
+First, populate a quickfix window with the lines and files you want to
+change. If you don't know how, try the `:Rg` command from [fzf.vim](https://github.com/junegunn/fzf.vim).
+
+Now execute `:lua require("replacer").run()<cr>`. You can also map it to a shortcut, for instance
+in lua:
 
 ```lua
 api.nvim_set_keymap('n', '<Leader>h', ':lua require("replacer").run()<cr>', { silent = true })
@@ -22,7 +23,10 @@ Or in VimScript:
 nmap <leader>h :lua require("replacer").run()<cr>
 ```
 
-When you're done editing the buffer save it and it's done.
+A new window will show up with the same lines you had on the quickfix.
+In this new window you can edit the lines and move the files.
+
+Save the buffer when you're done. That's it.
 
 ## Installation
 
