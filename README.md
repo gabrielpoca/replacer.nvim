@@ -1,7 +1,6 @@
 # replacer.nvim
 
-This plugin allows you to edit multiple lines and their corresponding
-files and folders at the same time. See the example below.
+replacer.vim allows you to edit lines, file names and folders at the same time. See the example below.
 
 ![Demo](./demo.gif)
 
@@ -24,7 +23,7 @@ nmap <leader>h :lua require("replacer").run()<cr>
 ```
 
 A new window will show up with the same lines you had on the quickfix.
-In this new window you can edit the lines and move the files.
+In this new window you can edit the lines and move/rename the files.
 
 Save the buffer when you're done. That's it.
 
