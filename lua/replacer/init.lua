@@ -4,21 +4,9 @@ local api = vim.api
 local replacer = {}
 local buffer_items = {}
 
-local function table_size(t)
-  local max = 0
-
-  for i, _ in pairs(t) do
-    if i > max then
-      max = i
-    end
-  end
-
-  return max
-end
-
 local function basename(path)
   chunks = vim.fn.split(path, "/")
-  size = table_size(chunks)
+  size = vim.tbl_count(chunks)
 
   if size == 1 then
     return nil
@@ -38,14 +26,14 @@ function replacer.run()
     vim.api.nvim_buf_set_lines(bufnr, i - 1, i - 1, false, {line})
   end
 
-  window.new(bufnr, table_size(items))
+  window.new(bufnr, vim.tbl_count(items))
 end
 
 function replacer.save(bufnr)
   vim.api.nvim_buf_set_option(bufnr, "modified", false)
 
   local items = buffer_items[bufnr]
-  local quickfix_items = vim.api.nvim_buf_get_lines(bufnr, 0, table_size(items), false)
+  local quickfix_items = vim.api.nvim_buf_get_lines(bufnr, 0, vim.tbl_count(items), false)
 
   -- save changes to each file's contents
   for index, item in pairs(items) do
