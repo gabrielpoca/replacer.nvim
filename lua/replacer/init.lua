@@ -14,6 +14,14 @@ local function basename(path)
   return vim.fn.join(vim.fn.remove(chunks, 0, -2), "/")
 end
 
+function table.empty(self)
+  for _, _ in pairs(self) do
+    return false
+  end
+
+  return true
+end
+
 function replacer.run()
   local bufnr = vim.fn.bufnr()
 
@@ -43,11 +51,13 @@ function replacer.run()
   api.nvim_buf_set_option(bufnr, 'filetype', 'replacer')
 end
 
-function replacer.save(bufnr)
-  vim.api.nvim_buf_set_option(bufnr, "modified", false)
+function replacer.save(qf_bufnr)
+  local qf_win_nr = vim.fn.bufwinid(qf_bufnr)
 
-  local items = buffer_items[bufnr]
-  local quickfix_items = vim.api.nvim_buf_get_lines(bufnr, 0, vim.tbl_count(items), false)
+  vim.api.nvim_buf_set_option(qf_bufnr, "modified", false)
+
+  local items = buffer_items[qf_bufnr]
+  local quickfix_items = vim.api.nvim_buf_get_lines(qf_bufnr, 0, vim.tbl_count(items), false)
 
   -- save changes to each file's contents
   for index, item in pairs(items) do
@@ -79,22 +89,47 @@ function replacer.save(bufnr)
 
   -- move/rename files
   for index, item in pairs(items) do
-    local new_file
+    local source_win_id = vim.fn.bufwinid(item.bufnr)
+    local source_is_loaded = vim.api.nvim_buf_is_loaded(item.bufnr)
+    local source_file = vim.fn.bufname(item.bufnr)
+    local source_folder = basename(source_file)
 
+    local dest_file
+
+    -- find the destination file name
     for part, match in pairs(vim.fn.split(quickfix_items[index], ":")) do
       if part == 1 then
-        new_file = match
+        dest_file = match
       end
     end
 
-    local file = vim.fn.bufname(item.bufnr)
+    if source_file ~= "" and source_file ~= dest_file and vim.fn.filereadable(source_file) and vim.fn.filereadable(dest_file) == 0 then
+      local dest_folder = vim.fn.mkdir(basename(dest_file), "p")
 
-    if file ~= "" and file ~= new_file and vim.fn.filereadable(file) and vim.fn.filereadable(new_file) == 0 then
-      vim.fn.mkdir(basename(new_file), "p")
-      vim.api.nvim_buf_delete(item.bufnr, {})
-      vim.fn.rename(file, new_file)
+      -- delete open buffer that's not visible
+      if source_is_loaded and source_win_id == -1 then
+        vim.api.nvim_buf_delete(item.bufnr, {})
+      end
+
+      vim.fn.rename(source_file, dest_file)
+
+      -- update visible buffer to point to the new file
+      if source_win_id ~= -1 then
+        vim.api.nvim_set_current_win(source_win_id)
+
+        vim.api.nvim_command("edit! " .. dest_file)
+
+        vim.api.nvim_buf_delete(item.bufnr, {})
+      end
+
+      -- delete previous folder if empty
+      if table.empty(vim.fn.readdir(source_folder)) then
+        vim.fn.delete(source_folder, "d")
+      end
     end
   end
+
+  vim.api.nvim_set_current_win(qf_win_nr)
 end
 
 return replacer;

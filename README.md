@@ -1,6 +1,11 @@
 # replacer.nvim
 
-replacer.vim allows you to edit lines, file names and folders at the same time. See the example below.
+replacer.nvim makes a quickfix window editable, allowing changes to both
+the content of a file as well as its path. You can use this to rename
+files or move them around. When moving a file around, if the origin folder
+gets empty, it's deleted.
+
+See the example below.
 
 ![Demo](./demo.gif)
 
