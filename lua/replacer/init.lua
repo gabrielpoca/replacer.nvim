@@ -103,6 +103,11 @@ function replacer.save(qf_bufnr)
       end
     end
 
+    -- reload source buffer
+    vim.api.nvim_buf_call(item.bufnr, function()
+      vim.cmd("edit!")
+    end)
+
     if source_file ~= "" and source_file ~= dest_file and vim.fn.filereadable(source_file) and vim.fn.filereadable(dest_file) == 0 then
       local dest_folder = vim.fn.mkdir(basename(dest_file), "p")
 
