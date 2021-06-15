@@ -63,7 +63,7 @@ function replacer.save(qf_bufnr)
   for index, item in pairs(items) do
     local line
 
-    for part, match in pairs(vim.fn.split(quickfix_items[index], ":")) do
+    for part, match in pairs(vim.fn.split(quickfix_items[index], ":", 1)) do
       if part == 1 then
         goto skip_to_next
       end
