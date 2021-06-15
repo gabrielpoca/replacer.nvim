@@ -1,4 +1,3 @@
-local window = require('replacer.window')
 local api = vim.api
 
 local replacer = {}
@@ -16,17 +15,32 @@ local function basename(path)
 end
 
 function replacer.run()
-  local bufnr = vim.api.nvim_create_buf(false, true)
+  local bufnr = vim.fn.bufnr()
+
+  if vim.api.nvim_buf_get_option(vim.fn.bufnr(), "filetype") ~= "qf" then
+    vim.api.nvim_command(":echoe 'Current buffer is not a quickfix list'")
+    return
+  end
+
   local items = vim.fn.getqflist()
 
   buffer_items[bufnr] = items
+
+  vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
   for i, item in pairs(items) do
     local line = vim.fn.bufname(item.bufnr) .. ':' .. item.text
     vim.api.nvim_buf_set_lines(bufnr, i - 1, i - 1, false, {line})
   end
 
-  window.new(bufnr, vim.tbl_count(items))
+  local write_autocmd = string.format('autocmd BufWriteCmd <buffer=%s> lua require"replacer".save(%s)', bufnr, bufnr)
+  vim.api.nvim_command(write_autocmd)
+
+  vim.cmd('setlocal nocursorcolumn nonumber norelativenumber')
+  api.nvim_buf_set_name(bufnr, 'replacer://' .. bufnr)
+  api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite')
+  api.nvim_buf_set_option(bufnr, 'filetype', 'replacer')
 end
 
 function replacer.save(bufnr)

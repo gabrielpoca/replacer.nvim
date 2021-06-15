@@ -22,8 +22,8 @@ Or in VimScript:
 nmap <leader>h :lua require("replacer").run()<cr>
 ```
 
-A new window will show up with the same lines you had on the quickfix.
-In this new window you can edit the lines and move/rename the files.
+Your quickfix window will change and now you can edit the lines and
+move/rename the files.
 
 Save the buffer when you're done. That's it.
 
