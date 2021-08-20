@@ -101,8 +101,6 @@ function replacer.save(qf_bufnr)
       ::skip_to_next_file::
     end
 
-    --dump(lines)
-
     vim.fn.writefile(lines, current_file, "S")
   end
 
