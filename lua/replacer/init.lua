@@ -74,7 +74,7 @@ function replacer.save(qf_bufnr)
       local file = vim.fn.bufname(item.bufnr)
 
       if current_file ~= file then
-        ::skip_to_next::
+        goto skip_to_next_file
       end
 
       local current_line = lines[item.lnum]
@@ -82,7 +82,7 @@ function replacer.save(qf_bufnr)
 
       for part, match in pairs(vim.fn.split(changed_items[index], ":", 1)) do
         if part == 1 then
-          goto skip_to_next
+          goto skip_to_next_part
         end
 
         if line == nil then
@@ -91,13 +91,17 @@ function replacer.save(qf_bufnr)
           line = line .. ":" .. match
         end
 
-        ::skip_to_next::
+        ::skip_to_next_part::
       end
 
       if current_line ~= line then
         lines[item.lnum] = line
       end
+
+      ::skip_to_next_file::
     end
+
+    --dump(lines)
 
     vim.fn.writefile(lines, current_file, "S")
   end
