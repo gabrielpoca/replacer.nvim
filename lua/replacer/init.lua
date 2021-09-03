@@ -56,39 +56,56 @@ function replacer.save(qf_bufnr)
 
   vim.api.nvim_buf_set_option(qf_bufnr, "modified", false)
 
-  local items = buffer_items[qf_bufnr]
-  local quickfix_items = vim.api.nvim_buf_get_lines(qf_bufnr, 0, vim.tbl_count(items), false)
+  local original_items = buffer_items[qf_bufnr]
+  local changed_items = vim.api.nvim_buf_get_lines(qf_bufnr, 0, vim.tbl_count(original_items), false)
+  local unique_files = {}
 
-  -- save changes to each file's contents
-  for index, item in pairs(items) do
-    local line
+  -- get every unique file
+  for _index, item in pairs(original_items) do
+    unique_files[vim.fn.bufname(item.bufnr)] = true
+  end
 
-    for part, match in pairs(vim.fn.split(quickfix_items[index], ":", 1)) do
-      if part == 1 then
-        goto skip_to_next
+  -- for every file
+  for current_file in pairs(unique_files) do
+    local lines = vim.fn.readfile(current_file)
+
+    -- save changes to each file's contents
+    for index, item in pairs(original_items) do
+      local file = vim.fn.bufname(item.bufnr)
+
+      if current_file ~= file then
+        goto skip_to_next_file
       end
 
-      if line == nil then
-        line = match
-      else
-        line = line .. ":" .. match
+      local current_line = lines[item.lnum]
+      local line
+
+      for part, match in pairs(vim.fn.split(changed_items[index], ":", 1)) do
+        if part == 1 then
+          goto skip_to_next_part
+        end
+
+        if line == nil then
+          line = match
+        else
+          line = line .. ":" .. match
+        end
+
+        ::skip_to_next_part::
       end
 
-      ::skip_to_next::
+      if current_line ~= line then
+        lines[item.lnum] = line
+      end
+
+      ::skip_to_next_file::
     end
 
-    local file = vim.fn.bufname(item.bufnr)
-    local lines = vim.fn.readfile(file)
-    local current_line = lines[item.lnum]
-
-    if current_line ~= line then
-      lines[item.lnum] = line
-      vim.fn.writefile(lines, file)
-    end
+    vim.fn.writefile(lines, current_file, "S")
   end
 
   -- move/rename files
-  for index, item in pairs(items) do
+  for index, item in pairs(original_items) do
     local source_win_id = vim.fn.bufwinid(item.bufnr)
     local source_is_loaded = vim.api.nvim_buf_is_loaded(item.bufnr)
     local source_file = vim.fn.bufname(item.bufnr)
@@ -97,7 +114,7 @@ function replacer.save(qf_bufnr)
     local dest_file
 
     -- find the destination file name
-    for part, match in pairs(vim.fn.split(quickfix_items[index], ":")) do
+    for part, match in pairs(vim.fn.split(changed_items[index], ":")) do
       if part == 1 then
         dest_file = match
       end
