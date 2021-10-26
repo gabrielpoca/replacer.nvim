@@ -32,6 +32,12 @@ move/rename the files.
 
 Save the buffer when you're done. That's it.
 
+If you don't want to rename/move files, use the option `rename_files`, for instance:
+
+```
+api.nvim_set_keymap('n', '<Leader>h', ':lua require("replacer").run({ rename_files = false })<cr>', { silent = true })
+```
+
 ## Installation
 
 ### [vim-plug](https://github.com/junegunn/vim-plug#readme)
