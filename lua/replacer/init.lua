@@ -63,9 +63,6 @@ end
 function replacer.save(qf_bufnr, opts)
   local rename_files = opts['rename_files']
 
-  dump('rename')
-  dump(rename_files)
-
   local qf_win_nr = vim.fn.bufwinid(qf_bufnr)
 
   vim.api.nvim_buf_set_option(qf_bufnr, "modified", false)
