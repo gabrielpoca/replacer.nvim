@@ -57,7 +57,6 @@ function replacer.run(opts)
   api.nvim_buf_set_name(bufnr, 'replacer://' .. bufnr)
   api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite')
   api.nvim_buf_set_option(bufnr, 'filetype', 'replacer')
-  api.nvim_buf_set_option(qf_bufnr, "modified", false)
 end
 
 function replacer.save(qf_bufnr, opts)
