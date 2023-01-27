@@ -1,9 +1,10 @@
+local autocmd = vim.api.nvim_create_autocmd
 local api = vim.api
 
 local replacer = {}
 local buffer_items = {}
 
-local function basename(path)
+function basename(path)
     chunks = vim.fn.split(path, "/")
     size = vim.tbl_count(chunks)
 
@@ -18,56 +19,31 @@ function table.empty(self)
     return true
 end
 
-function replacer.run(opts)
-    local opts = opts or {}
-    local rename_files = true
+function delete_empty_folder(file)
+    local folder = basename(file)
 
-    if opts['rename_files'] ~= nil and opts['rename_files'] == false then
-        rename_files = false
-    end
-
-    local bufnr = vim.fn.bufnr()
-
-    if vim.api.nvim_buf_get_option(vim.fn.bufnr(), "filetype") ~= "qf" then
-        vim.api.nvim_command(":echoe 'Current buffer is not a quickfix list'")
-        return
-    end
-
-    local items = vim.fn.getqflist()
-
-    buffer_items[bufnr] = items
-
-    vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-
-    for i, item in pairs(items) do
-        local line = vim.fn.bufname(item.bufnr) .. ':' .. item.text
-        vim.api.nvim_buf_set_lines(bufnr, i - 1, i - 1, false, {line})
-    end
-
-    local write_autocmd = string.format(
-                              'autocmd BufWriteCmd <buffer=%s> lua require"replacer".save(%s, { rename_files = %s })',
-                              bufnr, bufnr, rename_files)
-
-    vim.api.nvim_command(write_autocmd)
-
-    vim.cmd('setlocal nocursorcolumn nonumber norelativenumber')
-    api.nvim_buf_set_name(bufnr, 'replacer://' .. bufnr)
-    api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite')
-    api.nvim_buf_set_option(bufnr, 'filetype', 'replacer')
+    if table.empty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
 end
 
-function replacer.save(qf_bufnr, opts)
+function cleanup()
+    for bufnr, _ in pairs(buffer_items) do
+        api.nvim_buf_delete(bufnr, {force = true})
+    end
+
+    buffer_items = {}
+end
+
+function save(qf_bufnr, opts)
     local rename_files = opts['rename_files']
 
     local qf_win_nr = vim.fn.bufwinid(qf_bufnr)
 
-    vim.api.nvim_buf_set_option(qf_bufnr, "modified", false)
+    api.nvim_buf_set_option(qf_bufnr, "modified", false)
 
     local original_items = buffer_items[qf_bufnr]
-    local changed_items = vim.api.nvim_buf_get_lines(qf_bufnr, 0,
-                                                     vim.tbl_count(
-                                                         original_items), false)
+    local changed_items = api.nvim_buf_get_lines(qf_bufnr, 0,
+                                                 vim.tbl_count(original_items),
+                                                 false)
     local unique_files = {}
 
     -- get every unique file
@@ -105,16 +81,27 @@ function replacer.save(qf_bufnr, opts)
             ::skip_to_next_file::
         end
 
-        vim.fn.writefile(lines, current_file, "S")
+        local result = vim.fn.writefile(lines, current_file, "S")
+
+        if result < 0 then
+            error(string.format('Something went wrong writing file %s',
+                                current_file))
+            cleanup()
+            return
+        end
     end
+
+    local renamed_files = {}
 
     -- move/rename files
     if rename_files then
         for index, item in pairs(original_items) do
             local source_win_id = vim.fn.bufwinid(item.bufnr)
-            local source_is_loaded = vim.api.nvim_buf_is_loaded(item.bufnr)
+            local source_is_loaded = api.nvim_buf_is_loaded(item.bufnr)
             local source_file = vim.fn.bufname(item.bufnr)
-            local source_folder = basename(source_file)
+
+            -- already renamed this file
+            if renamed_files[item.bufnr] then goto skip_to_next_file end
 
             local dest_file
 
@@ -123,41 +110,91 @@ function replacer.save(qf_bufnr, opts)
                 if part == 1 then dest_file = match end
             end
 
-            -- reload source buffer
-            vim.api.nvim_buf_call(item.bufnr, function()
-                vim.cmd("edit!")
-            end)
+            -- if source and destination files are the same
+            if source_file == dest_file then goto skip_to_next_file end
 
-            if source_file ~= "" and source_file ~= dest_file and
-                vim.fn.filereadable(source_file) and
-                vim.fn.filereadable(dest_file) == 0 then
+            -- if the destination file already exists
+            if (vim.fn.filereadable(dest_file)) == 1 then
+                error(string.format('File %s already exists', dest_file))
+
+                goto skip_to_next_file
+            end
+
+            -- reload source buffer
+            api.nvim_buf_call(item.bufnr, function() vim.cmd("edit!") end)
+
+            if source_file ~= "" and vim.fn.filereadable(source_file) then
+                renamed_files[item.bufnr] = true
+
                 local dest_folder = vim.fn.mkdir(basename(dest_file), "p")
 
                 -- delete open buffer that's not visible
                 if source_is_loaded and source_win_id == -1 then
-                    vim.api.nvim_buf_delete(item.bufnr, {})
+                    api.nvim_buf_delete(item.bufnr, {})
                 end
 
-                vim.fn.rename(source_file, dest_file)
+                if vim.fn.rename(source_file, dest_file) ~= 0 then
+                    error(string.format('Failed to rename %s to %s',
+                                        source_file, dest_file))
+                end
 
                 -- update visible buffer to point to the new file
                 if source_win_id ~= -1 then
-                    vim.api.nvim_set_current_win(source_win_id)
+                    api.nvim_set_current_win(source_win_id)
 
-                    vim.api.nvim_command("edit! " .. dest_file)
+                    api.nvim_command("edit! " .. dest_file)
 
-                    vim.api.nvim_buf_delete(item.bufnr, {})
+                    api.nvim_buf_delete(item.bufnr, {})
                 end
 
-                -- delete previous folder if empty
-                if table.empty(vim.fn.readdir(source_folder)) then
-                    vim.fn.delete(source_folder, "d")
-                end
+                delete_empty_folder(source_file)
             end
+
+            ::skip_to_next_file::
         end
     end
 
-    vim.api.nvim_set_current_win(qf_win_nr)
+    cleanup()
+    return
+end
+
+function replacer.run(opts)
+    local opts = opts or {}
+    local rename_files = true
+
+    if opts['rename_files'] == false then rename_files = false end
+
+    local bufnr = vim.fn.bufnr()
+
+    if api.nvim_buf_get_option(0, "filetype") ~= "qf" then
+        error('Current buffer is not a quickfix list')
+        return
+    end
+
+    local items = vim.fn.getqflist()
+
+    buffer_items[bufnr] = items
+
+    api.nvim_buf_set_option(bufnr, "modifiable", true)
+    api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+
+    for i, item in pairs(items) do
+        local line = vim.fn.bufname(item.bufnr) .. ':' .. item.text
+        api.nvim_buf_set_lines(bufnr, i - 1, i - 1, false, {line})
+    end
+
+    autocmd('BufWriteCmd', {
+        buffer = bufnr,
+        once = true,
+        callback = function() save(bufnr, {rename_files = rename_files}) end
+    })
+
+    vim.cmd('setlocal nocursorcolumn nonumber norelativenumber')
+
+    api.nvim_buf_set_name(bufnr,
+                          'replacer://' .. vim.tbl_count(buffer_items) + 1)
+    api.nvim_buf_set_option(bufnr, 'buftype', 'acwrite')
+    api.nvim_buf_set_option(bufnr, 'filetype', 'replacer')
 end
 
 return replacer;
