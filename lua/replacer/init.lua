@@ -184,7 +184,7 @@ function M.run(opts)
         end
     })
 
-    api.nvim_buf_set_name(0, 'replacer://1')
+    api.nvim_buf_set_name(0, 'replacer://replacer')
     api.nvim_win_set_cursor(0, {1, 0})
 
     vim.wo.cursorcolumn = false
