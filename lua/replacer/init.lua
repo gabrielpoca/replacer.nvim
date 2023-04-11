@@ -14,16 +14,10 @@ local function basename(path)
     return table.concat(chunks, "/")
 end
 
-function table.empty(self)
-    for _, _ in pairs(self) do return false end
-
-    return true
-end
 
 local function delete_empty_folder(file)
     local folder = basename(file)
-
-    if table.empty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
+    if vim.tbl_isempty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
 end
 
 local function cleanup(bufnr)
