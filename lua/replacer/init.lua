@@ -186,6 +186,7 @@ function M.run(opts)
     vim.wo.relativenumber = false
     vim.bo.buftype = 'acwrite'
     vim.bo.filetype = 'replacer'
+    vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
 end
 
 return M;
