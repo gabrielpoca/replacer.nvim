@@ -67,6 +67,11 @@ local function save(qf_bufnr, qf_items, opts)
                 ::skip_to_next_part::
             end
 
+            -- add indentation to the line back to the line, since it's not
+            -- displayed in the quickfix window and otherwise missing there
+            local leadingWhitespace = current_line:match("^%s+")
+            line = leadingWhitespace .. line
+
             if current_line ~= line then lines[item.lnum] = line end
 
             ::skip_to_next_file::
