@@ -186,9 +186,11 @@ function M.run(opts)
     api.nvim_buf_set_name(0, 'replacer://replacer')
     api.nvim_win_set_cursor(0, {1, 0})
 
-    vim.wo.cursorcolumn = false
-    vim.wo.number = false
-    vim.wo.relativenumber = false
+    vim.opt_local.cursorcolumn = false
+    vim.opt_local.number = false
+    vim.opt_local.wrap = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.number = false
     vim.bo.buftype = 'acwrite'
     vim.bo.filetype = 'replacer'
     vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
