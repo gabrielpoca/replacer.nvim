@@ -194,10 +194,6 @@ function M.run(opts)
     vim.bo.buftype = 'acwrite'
     vim.bo.filetype = 'replacer'
     vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
-
-    -- add keymaps
-    vim.keymap.set("n", "q", vim.cmd.close, { desc = "Abort replacements", buffer = true, nowait = true })
-    vim.keymap.set("n", "<CR>", vim.cmd.write, { desc = "Confirm replacements", buffer = true, nowait = true })
 end
 
 return M;
