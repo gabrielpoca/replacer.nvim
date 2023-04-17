@@ -126,9 +126,9 @@ local function save(qf_bufnr, qf_items, opts)
                     api.nvim_buf_delete(item.bufnr, {})
                 end
 
-                local success, errormsg = os.rename(source_file, dest_file)
-                if not success then
-                    local msg = string.format('Failed to rename %s to %s: %s', source_file, dest_file, errormsg)
+                local exitCode = vim.fn.rename(source_file, dest_file)
+                if exitCode ~= 0 then
+                    local msg = string.format('Failed to rename %s to %s: %s', source_file, dest_file)
                     vim.notify(msg, vim.log.levels.ERROR)
                 end
 
