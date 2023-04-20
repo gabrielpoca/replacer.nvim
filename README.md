@@ -38,6 +38,9 @@ If you don't want to rename/move files, use the option `rename_files`, for insta
 api.nvim_set_keymap('n', '<Leader>h', ':lua require("replacer").run({ rename_files = false })<cr>', { silent = true })
 ```
 
+> __Warning__  
+> Do not use `rg --trim` for your vimgrep options (or in fzf.vim's or telescope's respective settings). Doing so will result in a removal of indentation when using replacer.nvim.
+
 ## Installation
 
 ### [vim-plug](https://github.com/junegunn/vim-plug#readme)
