@@ -121,6 +121,10 @@ local function save(qf_bufnr, qf_items, opts)
                     api.nvim_buf_delete(item.bufnr, {})
                 end
 
+                -- ensure destination directory exists
+                vim.fn.mkdir(basename(dest_file), "p")
+
+                ---@diagnostic disable-next-line: param-type-mismatch wrong annotation information when using neodeiv + lua-lsp
                 local exitCode = vim.fn.rename(source_file, dest_file)
                 if exitCode ~= 0 then
                     local msg = string.format('Failed to rename %s to %s: %s', source_file, dest_file)
