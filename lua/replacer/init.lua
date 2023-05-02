@@ -1,30 +1,26 @@
 local autocmd = vim.api.nvim_create_autocmd
 local api = vim.api
 
-local replacer = {}
+local M = {}
 
-function basename(path)
-    chunks = vim.fn.split(path, "/")
-    size = vim.tbl_count(chunks)
+local function basename(path)
+    local chunks = vim.fn.split(path, "/")
+    local size = vim.tbl_count(chunks)
 
     if size == 1 then return nil end
 
-    return vim.fn.join(vim.fn.remove(chunks, 0, -2), "/")
+    table.remove(chunks)
+    table.remove(chunks)
+    return table.concat(chunks, "/")
 end
 
-function table.empty(self)
-    for _, _ in pairs(self) do return false end
 
-    return true
-end
-
-function delete_empty_folder(file)
+local function delete_empty_folder(file)
     local folder = basename(file)
-
-    if table.empty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
+    if vim.tbl_isempty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
 end
 
-function cleanup(bufnr)
+local function cleanup(bufnr)
     api.nvim_buf_delete(bufnr, {force = true})
     -- cleanup qf list
     vim.fn.setqflist({}, "r")
@@ -32,10 +28,8 @@ function cleanup(bufnr)
     vim.cmd('edit')
 end
 
-function save(qf_bufnr, qf_items, opts)
+local function save(qf_bufnr, qf_items, opts)
     local rename_files = opts['rename_files']
-
-    local qf_win_nr = vim.fn.bufwinid(qf_bufnr)
 
     vim.bo[qf_bufnr].modified = false
 
@@ -44,7 +38,7 @@ function save(qf_bufnr, qf_items, opts)
     local unique_files = {}
 
     -- get every unique file
-    for _index, item in pairs(qf_items) do
+    for _, item in pairs(qf_items) do
         unique_files[vim.fn.bufname(item.bufnr)] = true
     end
 
@@ -81,8 +75,7 @@ function save(qf_bufnr, qf_items, opts)
         local result = vim.fn.writefile(lines, current_file, "S")
 
         if result < 0 then
-            error(string.format('Something went wrong writing file %s',
-                                current_file))
+            vim.notify(string.format('Something went wrong writing file %s', current_file), vim.log.levels.ERROR)
             cleanup(qf_bufnr)
             return
         end
@@ -123,24 +116,25 @@ function save(qf_bufnr, qf_items, opts)
             if source_file ~= "" and vim.fn.filereadable(source_file) then
                 renamed_files[item.bufnr] = true
 
-                local dest_folder = vim.fn.mkdir(basename(dest_file), "p")
-
                 -- delete open buffer that's not visible
                 if source_is_loaded and source_win_id == -1 then
                     api.nvim_buf_delete(item.bufnr, {})
                 end
 
-                if vim.fn.rename(source_file, dest_file) ~= 0 then
-                    error(string.format('Failed to rename %s to %s',
-                                        source_file, dest_file))
+                -- ensure destination directory exists
+                vim.fn.mkdir(basename(dest_file), "p")
+
+                ---@diagnostic disable-next-line: param-type-mismatch wrong annotation information when using neodeiv + lua-lsp
+                local exitCode = vim.fn.rename(source_file, dest_file)
+                if exitCode ~= 0 then
+                    local msg = string.format('Failed to rename %s to %s: %s', source_file, dest_file)
+                    vim.notify(msg, vim.log.levels.ERROR)
                 end
 
                 -- update visible buffer to point to the new file
                 if source_win_id ~= -1 then
                     api.nvim_set_current_win(source_win_id)
-
                     api.nvim_command("edit! " .. dest_file)
-
                     api.nvim_buf_delete(item.bufnr, {})
                 end
 
@@ -152,30 +146,32 @@ function save(qf_bufnr, qf_items, opts)
     end
 
     cleanup(qf_bufnr)
-    return
 end
 
-function replacer.run(opts)
-    local opts = opts or {}
+function M.run(opts)
+	if #vim.fn.getqflist() == 0 then
+		vim.notify('Quickfix List empty.', vim.log.levels.WARN)
+		return
+	end
+
+    opts = opts or {}
     local rename_files = true
 
     if opts['rename_files'] == false then rename_files = false end
 
-    if vim.bo.filetype ~= "qf" then
-        error('Current buffer is not a quickfix list')
-        return
-    end
+    -- open quickfix list, if it is not open
+    if vim.bo.filetype ~= "qf" then vim.cmd.copen() end
 
     local qf_bufnr = vim.fn.bufnr()
     local qf_items = vim.fn.getqflist()
 
     vim.bo.modifiable = true
 
-    api.nvim_buf_set_lines(qf_bufnr, 0, -1, false, {})
+    api.nvim_buf_set_lines(0, 0, -1, false, {})
 
     for i, item in pairs(qf_items) do
         local line = vim.fn.bufname(item.bufnr) .. ':' .. item.text
-        api.nvim_buf_set_lines(qf_bufnr, i - 1, i - 1, false, {line})
+        api.nvim_buf_set_lines(0, i - 1, i - 1, false, {line})
     end
 
     autocmd('BufWriteCmd', {
@@ -186,14 +182,17 @@ function replacer.run(opts)
         end
     })
 
-    api.nvim_buf_set_name(qf_bufnr, 'replacer://' .. 1)
+    api.nvim_buf_set_name(0, 'replacer://replacer')
     api.nvim_win_set_cursor(0, {1, 0})
 
-    vim.wo.cursorcolumn = false
-    vim.wo.number = false
-    vim.wo.relativenumber = false
+    vim.opt_local.cursorcolumn = false
+    vim.opt_local.number = false
+    vim.opt_local.wrap = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.number = false
     vim.bo.buftype = 'acwrite'
     vim.bo.filetype = 'replacer'
+    vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
 end
 
-return replacer;
+return M;
