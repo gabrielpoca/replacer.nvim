@@ -10,14 +10,15 @@ local function basename(path)
     if size == 1 then return nil end
 
     table.remove(chunks)
-    table.remove(chunks)
+
     return table.concat(chunks, "/")
 end
 
-
 local function delete_empty_folder(file)
     local folder = basename(file)
-    if vim.tbl_isempty(vim.fn.readdir(folder)) then vim.fn.delete(folder, "d") end
+    if vim.tbl_isempty(vim.fn.readdir(folder)) then
+        vim.fn.delete(folder, "d")
+    end
 end
 
 local function cleanup(bufnr)
@@ -25,7 +26,7 @@ local function cleanup(bufnr)
     -- cleanup qf list
     vim.fn.setqflist({}, "r")
     -- reload current file
-    vim.cmd('edit')
+    if vim.fn.bufname() ~= "" then vim.cmd('edit') end
 end
 
 local function save(qf_bufnr, qf_items, opts)
@@ -75,7 +76,8 @@ local function save(qf_bufnr, qf_items, opts)
         local result = vim.fn.writefile(lines, current_file, "S")
 
         if result < 0 then
-            vim.notify(string.format('Something went wrong writing file %s', current_file), vim.log.levels.ERROR)
+            vim.notify(string.format('Something went wrong writing file %s',
+                                     current_file), vim.log.levels.ERROR)
             cleanup(qf_bufnr)
             return
         end
@@ -127,8 +129,10 @@ local function save(qf_bufnr, qf_items, opts)
                 ---@diagnostic disable-next-line: param-type-mismatch wrong annotation information when using neodeiv + lua-lsp
                 local exitCode = vim.fn.rename(source_file, dest_file)
                 if exitCode ~= 0 then
-                    local msg = string.format('Failed to rename %s to %s: %s', source_file, dest_file)
+                    local msg = string.format('Failed to rename %s to %s',
+                                              source_file, dest_file)
                     vim.notify(msg, vim.log.levels.ERROR)
+                    goto skip_to_next_file
                 end
 
                 -- update visible buffer to point to the new file
@@ -149,10 +153,10 @@ local function save(qf_bufnr, qf_items, opts)
 end
 
 function M.run(opts)
-	if #vim.fn.getqflist() == 0 then
-		vim.notify('Quickfix List empty.', vim.log.levels.WARN)
-		return
-	end
+    if #vim.fn.getqflist() == 0 then
+        vim.notify('Quickfix List empty.', vim.log.levels.WARN)
+        return
+    end
 
     opts = opts or {}
     local rename_files = true
