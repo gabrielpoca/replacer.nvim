@@ -174,7 +174,15 @@ function M.run(opts)
     api.nvim_buf_set_lines(0, 0, -1, false, {})
 
     for i, item in pairs(qf_items) do
-        local line = vim.fn.bufname(item.bufnr) .. ':' .. item.text
+        if not api.nvim_buf_is_loaded(item.bufnr) then
+            vim.fn.bufload(item.bufnr)
+        end
+
+        local text = api.nvim_buf_get_lines(item.bufnr, item.lnum - 1,
+                                            item.lnum, false)[1]
+
+        local line = vim.fn.bufname(item.bufnr) .. ':' .. text
+
         api.nvim_buf_set_lines(0, i - 1, i - 1, false, {line})
     end
 
