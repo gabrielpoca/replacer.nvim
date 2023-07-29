@@ -7,7 +7,7 @@ deleted.
 
 See the example below.
 
-https://github.com/gabrielpoca/replacer.nvim/assets/934580/d7e43d08-5c3e-407c-bd1c-2f846e6050d9
+https://github.com/gabrielpoca/replacer.nvim/assets/934580/ad87499c-5699-4544-a458-9329593eff0a
 
 ## Using the plugin
 
