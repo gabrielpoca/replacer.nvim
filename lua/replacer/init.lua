@@ -3,6 +3,8 @@ local api = vim.api
 
 local M = {}
 
+local global_opts = {rename_files = true, save_on_write = true}
+
 local function basename(path)
     local chunks = vim.fn.split(path, "/")
     local size = vim.tbl_count(chunks)
@@ -29,7 +31,10 @@ local function cleanup(bufnr)
     if vim.fn.bufname() ~= "" then vim.cmd('edit') end
 end
 
-local function save(qf_bufnr, qf_items, opts)
+function M.save(opts)
+    local qf_bufnr = vim.fn.bufnr()
+    local qf_items = vim.fn.getqflist()
+
     local rename_files = opts['rename_files']
 
     vim.bo[qf_bufnr].modified = false
@@ -152,21 +157,21 @@ local function save(qf_bufnr, qf_items, opts)
     cleanup(qf_bufnr)
 end
 
+function M.setup(opts)
+    global_opts = vim.fn.extend(global_opts, opts or global_opts, "force")
+end
+
 function M.run(opts)
     if #vim.fn.getqflist() == 0 then
         vim.notify('Quickfix List empty.', vim.log.levels.WARN)
         return
     end
 
-    opts = opts or {}
-    local rename_files = true
-
-    if opts['rename_files'] == false then rename_files = false end
+    opts = vim.fn.extend(global_opts, opts or global_opts, "force")
 
     -- open quickfix list, if it is not open
     if vim.bo.filetype ~= "qf" then vim.cmd.copen() end
 
-    local qf_bufnr = vim.fn.bufnr()
     local qf_items = vim.fn.getqflist()
 
     vim.bo.modifiable = true
@@ -186,13 +191,19 @@ function M.run(opts)
         api.nvim_buf_set_lines(0, i - 1, i - 1, false, {line})
     end
 
-    autocmd('BufWriteCmd', {
-        buffer = qf_bufnr,
-        once = true,
-        callback = function()
-            save(qf_bufnr, qf_items, {rename_files = rename_files})
-        end
-    })
+    if opts.save_on_write then
+        local qf_bufnr = vim.fn.bufnr()
+
+        autocmd('BufWriteCmd', {
+            buffer = qf_bufnr,
+            once = true,
+            callback = function() M.save(opts) end
+        })
+
+        vim.bo.buftype = 'acwrite'
+    else
+        vim.bo.buftype = 'nofile'
+    end
 
     api.nvim_buf_set_name(0, 'replacer://replacer')
     api.nvim_win_set_cursor(0, {1, 0})
@@ -202,7 +213,6 @@ function M.run(opts)
     vim.opt_local.wrap = false
     vim.opt_local.relativenumber = false
     vim.opt_local.number = false
-    vim.bo.buftype = 'acwrite'
     vim.bo.filetype = 'replacer'
     vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
 end
