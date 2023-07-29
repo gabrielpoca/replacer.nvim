@@ -7,7 +7,7 @@ deleted.
 
 See the example below.
 
-![Demo](./demo.gif)
+https://github.com/gabrielpoca/replacer.nvim/assets/934580/d7e43d08-5c3e-407c-bd1c-2f846e6050d9
 
 ## Using the plugin
 
