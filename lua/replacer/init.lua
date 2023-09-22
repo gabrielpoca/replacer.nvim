@@ -174,9 +174,13 @@ function M.run(opts)
 
     local qf_items = vim.fn.getqflist()
 
+    local win = vim.api.nvim_get_current_win()
+    local buf = vim.api.nvim_create_buf(true, true)
+    vim.api.nvim_win_set_buf(win, buf)
+
     vim.bo.modifiable = true
 
-    api.nvim_buf_set_lines(0, 0, -1, false, {})
+    api.nvim_buf_set_lines(buf, 0, -1, false, {})
 
     for i, item in pairs(qf_items) do
         if not api.nvim_buf_is_loaded(item.bufnr) then
@@ -188,7 +192,7 @@ function M.run(opts)
 
         local line = vim.fn.bufname(item.bufnr) .. ':' .. text
 
-        api.nvim_buf_set_lines(0, i - 1, i - 1, false, {line})
+        api.nvim_buf_set_lines(buf, i - 1, i - 1, false, {line})
     end
 
     if opts.save_on_write then
@@ -205,7 +209,7 @@ function M.run(opts)
         vim.bo.buftype = 'nofile'
     end
 
-    api.nvim_buf_set_name(0, 'replacer://replacer')
+    api.nvim_buf_set_name(buf, 'replacer://replacer:' .. buf)
     api.nvim_win_set_cursor(0, {1, 0})
 
     vim.opt_local.cursorcolumn = false
@@ -213,6 +217,7 @@ function M.run(opts)
     vim.opt_local.wrap = false
     vim.opt_local.relativenumber = false
     vim.opt_local.number = false
+    vim.bo.modified = false
     vim.bo.filetype = 'replacer'
     vim.bo.formatoptions = '' -- to not autowrap lines, breaking filenames
 end
